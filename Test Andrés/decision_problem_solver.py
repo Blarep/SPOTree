@@ -11,6 +11,7 @@ southwest corner and tries to find shortest path to northeast corner.
 from gurobipy import *
 import numpy as np
 import random
+import copy
 
 dim = 4 #(creates dim * dim grid, where dim = number of vertices)
 Edge_list = [(i,i+1) for i in range(1, dim**2 + 1) if i % dim != 0]
@@ -19,8 +20,7 @@ Edge_dict = {} #(assigns each edge to a unique integer from 0 to number-of-edges
 for index, edge in enumerate(Edge_list):
     Edge_dict[edge] = index
 D = len(Edge_list) # D = number of decisions
-print(Edge_list)
-print(Edge_dict)
+
 def get_num_decisions():
   return D
 
@@ -49,12 +49,19 @@ def find_opt_decision(cost):
         for edge in Edges:
             weights[i, Edge_dict[edge]] = temp['weights'][edge]
         objective[i] = temp['objective']
+    print(weights)
+    print(objective)
     return {'weights': weights, 'objective':objective}
 
 
-def evFunc(cromosome):
-    #WIP
-    retun 0
+def evFunc(cromosome, costVector):
+    #WIP, penalization for maximization, needs to be changed to minimization
+    quality = sum((costVector * cromosome)[0])
+    pen = -15
+    #If the path has more edges than necessary
+    if sum(cromosome) > 6:
+        quality += pen
+    return quality
 
 def genInitPob(pobSize):
     # Generate random feasible paths of length 6
@@ -87,6 +94,8 @@ def genInitPob(pobSize):
                 selectedEdge = AdjacencyList[actualNode-1][0]
                 cromosome[Edge_dict[selectedEdge]] = 1
                 actualNode = selectedEdge[1]
+        initPob.append(cromosome)
+    return initPob
 
 def doOperator(prob):
     num = random.random()
@@ -112,50 +121,61 @@ def crossover(crom1, crom2, pCross):
     return [child1,child2]
 
 
-def rouletteWheel(population):
+def rouletteWheel(population, costVector):
     #WIP, roulette wheel for maximization, needs to be changed to minimization
-    fitnesses = [evFunc(crom) for crom in population]
+    fitnesses = [evFunc(crom, costVector) for crom in population]
     totalFit = sum(fitnesses)
-    selProbs = [evFunc(crom)/totalFit for crom in population]
+    selProbs = [evFunc(crom, costVector)/totalFit for crom in population]
     selected = np.random.choice(len(population), size = len(population), p = selProbs)
     fathers = []
     for selIndex in selected:
         fathers.append(copy.deepcopy(population[selIndex]))
     return fathers
 
-def bestCromosome(population, bestCrom, maxFit):
-    fitnesses = [evFunc(crom) for crom in population]
+def bestCromosome(population, bestCrom, costVector):
+    maxFit = evFunc(bestCrom, costVector)
+    fitnesses = [evFunc(crom, costVector) for crom in population]
     for i in range(len(population)):
-        if fitnesses[i] > maxFit;
-        bestCrom = copy.deepcopy(population[i])
-        maxFit = fitnesses[i]
+        if fitnesses[i] > maxFit:
+            bestCrom = copy.deepcopy(population[i])
+            maxFit = fitnesses[i]
     return bestCrom
 
-def evAlg(seed, pMut, pCross, gens):
-    random.seed(100)
+def evAlg(seed, pMut, pCross, gens, costVector):
+    random.seed(seed)
     initPob = genInitPob(20)
     selected = copy.deepcopy(initPob)
-    bestCrom = bestCromosome(initPob, initPob[0], evFunc(initPob[0]))
-    for i in range(gens);
+    bestCrom = bestCromosome(initPob, initPob[0], costVector)
+    for i in range(gens):
         oldGen = copy.deepcopy(selected)
-        bestCrom = bestCromosome(oldGen, bestCromm evFunc(bestCromosome))
-        selected = rouletteWheel(oldGen)
+        bestCrom = bestCromosome(oldGen, bestCrom, costVector)
+        selected = rouletteWheel(oldGen, costVector)
         random.shuffle(selected)
         children = []
 
         #Crossover
         for j in range(0, len(selected), 2):
-            children = crossover(selected[j], selected[j+1], pCross)
-        bestCrom = bestCromosome(children, bestCromm evFunc(bestCromosome))
+            children += crossover(selected[j], selected[j+1], pCross)
+        bestCrom = bestCromosome(children, bestCrom, costVector)
         #Mutation
         for cromosome in children:
             mutation(cromosome, pMut)
         keepBest = random.randint(0, len(selected)-1)
         children[keepBest] = bestCrom
         selected = children
-
+    return selected
 
 #Tests...
-genInitPob(20)
+
+exampleCost = np.array([[2.12573658, 2.86892919, 1.4995873,  2.72637714, 2.6100996,  2.98420214,
+  3.42593018, 4.44605635, 2.22218943, 1.53403079, 3.37968452, 5.46691757,
+  3.56102782, 1.52107794, 3.39977858, 2.58147463, 2.26409991, 2.12573658,
+  2.6294474,  3.50558807, 1.52107794, 3.39977858, 1.        , 3.42593018]])
+print(exampleCost)
+print(type(exampleCost))
+solutions = evAlg(100, 0.01, 0, 40, exampleCost)
+
+for sol in solutions:
+    print(sol, sum(sol), evFunc(sol, exampleCost))
 
 
