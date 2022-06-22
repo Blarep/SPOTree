@@ -52,7 +52,7 @@ def find_opt_decision(cost):
         objective[i] = temp['objective']
     """
     #EV replacement
-    finalPop = evAlg(100, 0.01, 0, 40, cost)
+    finalPop = evAlg(100, 0.01, 0.8, 40, cost)
     bestInd = bestCromosome(finalPop, finalPop[0], cost)
     #format to SPO implementation
     weights = np.array([bestInd])
@@ -122,8 +122,8 @@ def crossover(crom1, crom2, pCross):
     child2 = crom2
     if doOperator(pCross):
         point = random.randint(1, len(crom1)-1)
-        child1 = crom1[:punto] + crom2[punto:]
-        child2 = crom2[:punto] + crom1[punto:]
+        child1 = crom1[:point] + crom2[point:]
+        child2 = crom2[:point] + crom1[point:]
     return [child1,child2]
 
 
@@ -189,7 +189,7 @@ def evAlg(seed, pMut, pCross, gens, costVector):
 
 
 #Tests...
-"""
+
 exampleCost = np.array([[2.12573658, 2.86892919, 1.4995873,  2.72637714, 2.6100996,  2.98420214,
   3.42593018, 4.44605635, 2.22218943, 1.53403079, 3.37968452, 5.46691757,
   3.56102782, 1.52107794, 3.39977858, 2.58147463, 2.26409991, 2.12573658,
@@ -210,4 +210,3 @@ for i in range(24):
 
 print(np.array([bestInd]))
 print(np.array([evFunc(bestInd, exampleCost)]))
-"""
