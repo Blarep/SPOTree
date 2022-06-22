@@ -42,6 +42,7 @@ def shortest_path(cost):
     return {'weights': m_shortest_path.getAttr('x', flow), 'objective': m_shortest_path.objVal}
 
 def find_opt_decision(cost):
+    """
     weights = np.zeros(cost.shape)
     objective = np.zeros(cost.shape[0])
     for i in range(cost.shape[0]):
@@ -49,17 +50,23 @@ def find_opt_decision(cost):
         for edge in Edges:
             weights[i, Edge_dict[edge]] = temp['weights'][edge]
         objective[i] = temp['objective']
-    print(weights)
-    print(objective)
+    """
+    #EV replacement
+    finalPop = evAlg(100, 0.01, 0, 40, cost)
+    bestInd = bestCromosome(finalPop, finalPop[0], cost)
+    #format to SPO implementation
+    weights = np.array([bestInd])
+    objective = np.array([evFunc(bestInd, cost)])
+
     return {'weights': weights, 'objective':objective}
 
 
 def evFunc(cromosome, costVector):
-    #WIP, penalization for maximization, needs to be changed to minimization
     quality = sum((costVector * cromosome)[0])
-    pen = -15
-    #If the path has more edges than necessary
-    if sum(cromosome) > 6:
+    pen = 15
+    #If the path has lees edges than necessary 
+    #Necessary for minimization
+    if sum(cromosome) < 6:
         quality += pen
     return quality
 
@@ -73,7 +80,6 @@ def genInitPob(pobSize):
             if i == edge[0]:
                 neighbors.append(edge)
         AdjacencyList.append(neighbors)
-    print(AdjacencyList)
     for i in range(pobSize):
         cromosome = [0] * 24
         actualNode = 1    
@@ -121,8 +127,22 @@ def crossover(crom1, crom2, pCross):
     return [child1,child2]
 
 
+def tournamentSelection(population, costVector, k = 3):
+    fitnesses = [evFunc(crom, costVector) for crom in population]
+    fathers = []
+    for i in range(len(population)):
+        #One tournament per cromosome
+        selIndex = random.randint(0, len(population)-1)
+        for index in np.random.randint(0, len(population), k-1):
+            #tournament
+            if fitnesses[index] < fitnesses[selIndex]:
+                selIndex = index
+        fathers.append(copy.deepcopy(population[selIndex]))
+    return fathers
+
+"""
 def rouletteWheel(population, costVector):
-    #WIP, roulette wheel for maximization, needs to be changed to minimization
+    #roulette wheel for maximization, needs to be changed to minimization
     fitnesses = [evFunc(crom, costVector) for crom in population]
     totalFit = sum(fitnesses)
     selProbs = [evFunc(crom, costVector)/totalFit for crom in population]
@@ -131,14 +151,15 @@ def rouletteWheel(population, costVector):
     for selIndex in selected:
         fathers.append(copy.deepcopy(population[selIndex]))
     return fathers
+"""
 
 def bestCromosome(population, bestCrom, costVector):
-    maxFit = evFunc(bestCrom, costVector)
+    minFit = evFunc(bestCrom, costVector)
     fitnesses = [evFunc(crom, costVector) for crom in population]
     for i in range(len(population)):
-        if fitnesses[i] > maxFit:
+        if fitnesses[i] < minFit:
             bestCrom = copy.deepcopy(population[i])
-            maxFit = fitnesses[i]
+            minFit = fitnesses[i]
     return bestCrom
 
 def evAlg(seed, pMut, pCross, gens, costVector):
@@ -149,7 +170,8 @@ def evAlg(seed, pMut, pCross, gens, costVector):
     for i in range(gens):
         oldGen = copy.deepcopy(selected)
         bestCrom = bestCromosome(oldGen, bestCrom, costVector)
-        selected = rouletteWheel(oldGen, costVector)
+        #selected = rouletteWheel(oldGen, costVector)
+        selected = tournamentSelection(oldGen, costVector)
         random.shuffle(selected)
         children = []
 
@@ -165,8 +187,9 @@ def evAlg(seed, pMut, pCross, gens, costVector):
         selected = children
     return selected
 
-#Tests...
 
+#Tests...
+"""
 exampleCost = np.array([[2.12573658, 2.86892919, 1.4995873,  2.72637714, 2.6100996,  2.98420214,
   3.42593018, 4.44605635, 2.22218943, 1.53403079, 3.37968452, 5.46691757,
   3.56102782, 1.52107794, 3.39977858, 2.58147463, 2.26409991, 2.12573658,
@@ -177,5 +200,14 @@ solutions = evAlg(100, 0.01, 0, 40, exampleCost)
 
 for sol in solutions:
     print(sol, sum(sol), evFunc(sol, exampleCost))
+print("---")
+bestInd = bestCromosome(solutions, solutions[0], exampleCost)
+print(bestInd, sum(bestInd), evFunc(bestInd,exampleCost))
 
+for i in range(24):
+    if bestInd[i] == 1:
+        print(Edge_list[i])
 
+print(np.array([bestInd]))
+print(np.array([evFunc(bestInd, exampleCost)]))
+"""
