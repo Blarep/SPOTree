@@ -189,7 +189,7 @@ def evAlg(seed, pMut, pCross, gens, costVector):
 
 
 #Tests...
-
+"""
 exampleCost = np.array([[2.12573658, 2.86892919, 1.4995873,  2.72637714, 2.6100996,  2.98420214,
   3.42593018, 4.44605635, 2.22218943, 1.53403079, 3.37968452, 5.46691757,
   3.56102782, 1.52107794, 3.39977858, 2.58147463, 2.26409991, 2.12573658,
@@ -210,3 +210,4 @@ for i in range(24):
 
 print(np.array([bestInd]))
 print(np.array([evFunc(bestInd, exampleCost)]))
+"""
